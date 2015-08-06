@@ -1,0 +1,23 @@
+#%RAML 0.8
+---
+title: Álainn Cosmetics My Special Offers API
+version: v1
+baseUri: https://alainn-item-api.cloudhub.io/{version}
+
+traits: !include traits.raml
+/offers:
+  description: List of all items on sale
+  get:
+    is: [searchable, imageable]
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include get_offers.json
+  /{offerId}:
+    get:
+      responses:
+        200:
+          body:
+            application/json: 
+              example: !include get_offer.json

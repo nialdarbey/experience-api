@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ns0:getItemsResponse xmlns:ns0="http://www.alainn.com/SOA/message/1.0">
+  <ns0:PageInfo>
+    <pageIndex>1</pageIndex>
+    <pageSize>1</pageSize>
+  </ns0:PageInfo>
+  <ns1:Item xmlns:ns1="http://www.alainn.com/SOA/model/1.0">
+    <id>????</id>
+    <type>????</type>
+    <name>????</name>
+    <summary>????</summary>
+    <brand>????</brand>
+    <images>
+      <image type="????">????</image>
+    </images>
+  </ns1:Item>
+</ns0:getItemsResponse>

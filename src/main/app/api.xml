@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd" version="EE-3.7.0">
+    <http:listener-config name="api-httpListenerConfig" protocol="HTTPS" host="0.0.0.0" port="8082" doc:name="HTTP Listener Configuration">
+        <tls:context>
+            <tls:key-store type="jks" path="keystore.jks" keyPassword="changeit" password="changeit" alias="server-alias"/>
+        </tls:context>
+    </http:listener-config>
+	<apikit:config name="api-config" raml="api.raml" consoleEnabled="true" consolePath="console" doc:name="Router"/>
+    <http:request-config name="HTTP_Request_Configuration" protocol="HTTPS" host="alainn-item-api.cloudhub.io" port="443" basePath="/api" doc:name="HTTP Request Configuration">
+        <http:raml-api-configuration location="item/api.raml"/>
+    </http:request-config>
+    <flow name="api-main">
+        <http:listener config-ref="api-httpListenerConfig" path="/api/*" doc:name="/my-special-offers/api"/>
+        <apikit:router config-ref="api-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="get:/offers:api-config">
+        <http:request config-ref="HTTP_Request_Configuration" path="/items" method="GET" metadata:id="1baf45a9-157d-46dc-aa5d-60a581c91dfc" doc:name="Item API: GET /items">
+            <http:request-builder>
+                <http:query-param paramName="pageIndex" value="0"/>
+                <http:query-param paramName="pageSize" value="10"/>
+                <http:query-param paramName="name" value="#[p = message.inboundProperties['http.query.params'].name; p==null ? '' : p ]"/>
+                <http:query-param paramName="brand" value="#[p = message.inboundProperties['http.query.params'].brand; p==null ? '' : p]"/>
+                <http:query-param paramName="type" value="#[p = message.inboundProperties['http.query.params'].type; p==null ? '' : p]"/>
+                <http:query-param paramName="imageType" value="#[p = message.inboundProperties['http.query.params'].imageType; p==null ? '' : p]"/>
+            </http:request-builder>
+        </http:request>
+        <dw:transform-message doc:name="to Json">
+            <dw:input-payload doc:sample="getItemsResponse_1.xml"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+  size: sizeOf payload.getItemsResponse.*Item,
+  items: payload.getItemsResponse.*Item map {
+    id: $.id,
+    name: $.name,
+    (summary: $.summary) when $.summary != '',
+    brand: $.brand,
+    images: $.images.*image filter $.@type != 'LargeImage' map {
+      type: $.@type,
+      url: $
+    }
+  }
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="get:/offers/{offerId}:api-config">
+        <set-payload value="{&#xA;  &quot;size&quot;: 2,&#xA;  &quot;items&quot;: [&#xA;    {&#xA;      &quot;id&quot;: &quot;B00014WW38&quot;,&#xA;      &quot;name&quot;: &quot;Naturtint - Permanent Hair Colorant&quot;,&#xA;      &quot;summary&quot;: &quot;Naturtint 1n Black Ebony Hair Color (1xKit)&quot;,&#xA;      &quot;brand&quot;: &quot;Naturtint&quot;,&#xA;      &quot;images&quot;: [&#xA;        {&#xA;          &quot;type&quot;: &quot;LargeImage&quot;,&#xA;          &quot;url&quot;: &quot;http://ecx.images-amazon.com/images/I/51DLz71-k1L.jpg&quot;&#xA;        },&#xA;        {&#xA;          &quot;type&quot;: &quot;SmallImage&quot;,&#xA;          &quot;url&quot;: &quot;http://ecx.images-amazon.com/images/I/51DLz71-k1L._SL75_.jpg&quot;&#xA;        }&#xA;      ]&#xA;    },&#xA;    {&#xA;      &quot;id&quot;: &quot;B0000YUWXG&quot;,&#xA;      &quot;name&quot;: &quot;Jerome Russell's Hair Color Thickener for Thinning Hair&quot;,&#xA;      &quot;summary&quot;: &quot;Effectively cover up light to medium bald spots.&quot;,&#xA;      &quot;brand&quot;: &quot;Jerome Russell&quot;,&#xA;      &quot;images&quot;: [&#xA;        {&#xA;          &quot;type&quot;: &quot;LargeImage&quot;,&#xA;          &quot;url&quot;: &quot;http://ecx.images-amazon.com/images/I/516dJDxYU4L.jpg&quot;&#xA;        },&#xA;        {&#xA;          &quot;type&quot;: &quot;SmallImage&quot;,&#xA;          &quot;url&quot;: &quot;http://ecx.images-amazon.com/images/I/516dJDxYU4L._SL75_.jpg&quot;&#xA;        }&#xA;      ]&#xA;    }&#xA;  ]&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <apikit:mapping-exception-strategy name="api-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>
